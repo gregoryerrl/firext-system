@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Firext-system
 
-## Getting Started
+## Project Overview
 
-First, run the development server:
+A fire extinguisher monitoring system that combines hardware sensors and web interface for comprehensive fire safety management.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Technology Stack
+
+- Database: Firebase
+
+## System Components
+
+### Hardware Component
+
+- Monitors fire extinguisher weight for leak detection
+- Adds new fire extinguishers to the system
+
+### Web Component
+
+- Displays all fire extinguishers
+- Manages fire extinguisher details
+- Monitors locations and expiration dates
+
+## Database Schema
+
+### Docks Collection
+
+```json
+{
+  "id": "string",
+  "name": "string",
+  "location": "string",
+  "weight": "number",
+  "created_at": "timestamp",
+  "updated_at": "timestamp",
+  "expires_at": "timestamp"
+}
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## User Stories
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+As a user:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- I want to be able to create, edit, and delete docks
+- I want to be able to see the location of the docks
+- I want to be able to edit the expiration date of the dock
+- I want to be able to monitor the weight changes and expires_at of the docks
+- I want to be notified if a dock is too light
+- I want to be notified if a dock is expired
 
-## Learn More
+## Screens
 
-To learn more about Next.js, take a look at the following resources:
+### Home/Dashboard Screen
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Features:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Card display of docks (Name, Location, Weight and Expiration) for monitoring, sorted by expiration date
+- Weight status indicators:
+  - 🟢 Green: Heavy enough
+  - 🟡 Yellow: Medium weight
+  - 🔴 Red: Light (indicates leak)
+- Expiration status indicators:
+  - 🟢 Green: Far from expiration
+  - 🟡 Yellow: Near expiration
+  - 🔴 Red: Expired
+- Notification tab for displaying leaks and expired extinguisher alerts
 
-## Deploy on Vercel
+### Configure Docks Screen
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Features:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- List of all docks with complete details
+- Search bar for finding specific docks
+- CRUD operation buttons
