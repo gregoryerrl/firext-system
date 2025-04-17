@@ -24,6 +24,7 @@ export function DockForm({isOpen, onClose, onSubmit, initialData}) {
       location: "",
       weight: 4.5,
       expires_at: "",
+      led_num: "",
     },
   });
 
@@ -42,6 +43,7 @@ export function DockForm({isOpen, onClose, onSubmit, initialData}) {
     onSubmit({
       ...data,
       weight: Number(data.weight),
+      led_num: Number(data.led_num),
       expires_at: new Date(data.expires_at).toISOString(),
     });
     onClose();
@@ -105,6 +107,21 @@ export function DockForm({isOpen, onClose, onSubmit, initialData}) {
               <p className="text-sm text-red-500">
                 {errors.expires_at.message}
               </p>
+            )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="led_num">LED Number</Label>
+            <Input
+              id="led_num"
+              type="number"
+              {...register("led_num", {
+                required: "LED number is required",
+                validate: (value) =>
+                  !isNaN(value) || "LED number must be a valid number",
+              })}
+            />
+            {errors.led_num && (
+              <p className="text-sm text-red-500">{errors.led_num.message}</p>
             )}
           </div>
           <div className="flex justify-end gap-2">

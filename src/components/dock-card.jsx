@@ -1,115 +1,126 @@
 "use client";
 
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
-import {Badge} from "@/components/ui/badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import Link from "next/link";
+import {Button} from "@/components/ui/button";
+import {CheckIcon, AlertTriangle} from "lucide-react";
 import {cn} from "@/lib/utils";
-import {Weight, Calendar} from "lucide-react";
 
 export function DockCard({dock}) {
-  const getWeightStatus = (weightInKg) => {
-    if (weightInKg >= 4.1)
-      return {
-        color: "green",
-        text: "Full Weight",
-        weight: weightInKg.toFixed(1),
-      };
-    if (weightInKg >= 3.2)
-      return {
-        color: "yellow",
-        text: "Mid Weight",
-        weight: weightInKg.toFixed(1),
-      };
-    return {
-      color: "red",
-      text: "Low Weight - Leak Detected",
-      weight: weightInKg.toFixed(1),
-    };
-  };
+  // Always parse weight to ensure it's a number
+  const weight = parseFloat(dock.weight || 0);
 
-  const formatDate = (date) => {
-    return new Intl.DateTimeFormat("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "2-digit",
-    }).format(new Date(date));
-  };
+  // Derive LED state directly from weight regardless of stored value
+  // LED should be ON (true) when weight is 0 or <= 3.2
+  const derivedLedState = weight === 0 || weight <= 3.2;
 
-  const getExpirationStatus = (expiresAt) => {
-    const now = new Date();
-    const expiry = new Date(expiresAt);
+  // Log discrepancy for debugging if any
+  if (Boolean(dock.led_state) !== derivedLedState) {
+    console.log(
+      `INCONSISTENCY - Dock ${dock.id}: DB led_state=${dock.led_state}, Weight-based led_state=${derivedLedState}, weight=${weight}`
+    );
+  }
 
-    // Get the difference in months more accurately
-    const monthsDiff =
-      (expiry.getFullYear() - now.getFullYear()) * 12 +
-      (expiry.getMonth() - now.getMonth());
+  // Always use weight-derived LED state for display
+  const isLedOn = derivedLedState;
 
-    // Adjust for day of month
-    const dayDiff = expiry.getDate() - now.getDate();
-    const adjustedMonths = monthsDiff + (dayDiff < 0 ? -1 : 0);
+  // Status for weight
+  const isWeightOk = weight > 3.2;
 
-    if (adjustedMonths < 0) return {color: "red", text: "Expired"};
-    if (adjustedMonths < 1) return {color: "yellow", text: "Expiring Soon"};
-    return {color: "green", text: "Valid"};
-  };
+  const daysUntilExpiry = (() => {
+    if (!dock.expires_at) return null;
+    const expiryDate = new Date(dock.expires_at);
+    const today = new Date();
+    const diffTime = expiryDate - today;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  })();
 
-  const weightStatus = getWeightStatus(dock.weight);
-  const expiryStatus = getExpirationStatus(dock.expires_at);
-
-  const statusColors = {
-    green: "bg-green-500/10 text-green-500 hover:bg-green-500/20",
-    yellow: "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20",
-    red: "bg-red-500/10 text-red-500 hover:bg-red-500/20",
-  };
+  const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry <= 30;
+  const isExpired = daysUntilExpiry !== null && daysUntilExpiry <= 0;
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2">
-        <div className="space-y-1">
-          <CardTitle className="text-sm font-medium">{dock.name}</CardTitle>
-          <p className="text-xs text-muted-foreground">{dock.location}</p>
-        </div>
-        <div className="flex flex-col gap-2">
-          <Badge
-            variant="secondary"
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>{dock.name}</span>
+          <div
             className={cn(
-              "pointer-events-none",
-              statusColors[weightStatus.color]
+              "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
+              isWeightOk
+                ? "bg-green-100 text-green-700"
+                : "bg-red-100 text-red-700"
             )}
           >
-            <Weight className="mr-1 h-3 w-3" />
-            {weightStatus.text}
-          </Badge>
-          <Badge
-            variant="secondary"
-            className={cn(
-              "pointer-events-none",
-              statusColors[expiryStatus.color]
-            )}
-          >
-            <Calendar className="mr-1 h-3 w-3" />
-            {expiryStatus.text}
-          </Badge>
-        </div>
+            {dock.led_num}
+          </div>
+        </CardTitle>
+        <CardDescription>{dock.location}</CardDescription>
       </CardHeader>
-      <CardContent>
-        <div className="mt-2 grid grid-cols-2 gap-4">
-          <div>
-            <div className="text-xs font-medium">Weight</div>
-            <div className="text-2xl font-bold">
-              {weightStatus.weight}
-              <span className="text-sm font-normal text-muted-foreground ml-1">
-                kg
-              </span>
-            </div>
-          </div>
-          <div>
-            <div className="text-xs font-medium">Expires</div>
-            <div className="text-sm font-medium">
-              {formatDate(dock.expires_at)}
-            </div>
-          </div>
+      <CardContent className="grid gap-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Weight</span>
+          <span
+            className={cn(
+              "text-sm font-medium",
+              isWeightOk ? "text-green-600" : "text-red-600"
+            )}
+          >
+            {weight.toFixed(1)} kg
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">LED Status</span>
+          <span
+            className={cn(
+              "flex items-center text-sm font-medium",
+              isLedOn ? "text-red-600" : "text-green-600"
+            )}
+          >
+            {isLedOn ? (
+              <>
+                <AlertTriangle className="mr-1 h-3.5 w-3.5" /> LED ON
+              </>
+            ) : (
+              <>
+                <CheckIcon className="mr-1 h-3.5 w-3.5" /> LED OFF
+              </>
+            )}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">Expiry</span>
+          <span
+            className={cn(
+              "text-sm font-medium",
+              isExpired
+                ? "text-red-600"
+                : isExpiringSoon
+                ? "text-amber-600"
+                : "text-green-600"
+            )}
+          >
+            {daysUntilExpiry === null
+              ? "N/A"
+              : isExpired
+              ? "Expired"
+              : `${daysUntilExpiry} days`}
+          </span>
         </div>
       </CardContent>
+      <CardFooter>
+        <Button asChild className="w-full" variant="outline">
+          <Link href={`/configure?edit=${dock.id}`}>Edit</Link>
+        </Button>
+      </CardFooter>
     </Card>
   );
 }

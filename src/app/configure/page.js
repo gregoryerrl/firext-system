@@ -15,7 +15,7 @@ import {Shell} from "@/components/shell";
 import {DockTable} from "@/components/dock-table";
 import {DockForm} from "@/components/dock-form";
 import {Button} from "@/components/ui/button";
-import {Plus} from "lucide-react";
+import {Plus, Trash2} from "lucide-react";
 import {db} from "@/lib/firebase";
 import {ProtectedRoute} from "@/components/protected-route";
 
@@ -23,6 +23,7 @@ export default function ConfigurePage() {
   const [docks, setDocks] = useState([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDock, setSelectedDock] = useState(null);
+  const [isRemoving, setIsRemoving] = useState(false);
 
   useEffect(() => {
     const docksRef = ref(db, "docks");
@@ -49,11 +50,33 @@ export default function ConfigurePage() {
     try {
       const docksRef = ref(db, "docks");
       const newDockRef = push(docksRef);
+
+      // Get the key BEFORE updating
+      const newDockId = newDockRef.key;
+
+      // Enforce correct initial values
+      const weight = parseFloat(data.weight);
+      // Handle NaN case
+      const validWeight = isNaN(weight) ? 4.5 : weight;
+
+      // Strictly enforce LED state based on weight
+      // LED should be ON (true) when weight is 0 or <= 3.2
+      const initialLedState = validWeight === 0 || validWeight <= 3.2;
+
+      console.log(
+        `Creating dock with weight=${validWeight}, led_state=${initialLedState}`
+      );
+
       await update(newDockRef, {
         ...data,
+        id: newDockId, // Explicitly store ID in the data
+        weight: validWeight,
+        led_state: initialLedState,
         created_at: serverTimestamp(),
         updated_at: serverTimestamp(),
       });
+
+      console.log("Created dock with ID:", newDockId);
     } catch (error) {
       console.error("Error creating dock:", error);
     }
@@ -63,8 +86,24 @@ export default function ConfigurePage() {
     if (!selectedDock) return;
     try {
       const dockRef = ref(db, `docks/${selectedDock.id}`);
+
+      // Ensure LED state is consistent with weight when updating
+      const weight = parseFloat(data.weight);
+      // Handle NaN case
+      const validWeight = isNaN(weight) ? 4.5 : weight;
+
+      // Strictly enforce LED state based on weight
+      // LED should be ON (true) when weight is 0 or <= 3.2
+      const ledState = validWeight === 0 || validWeight <= 3.2;
+
+      console.log(
+        `Updating dock ${selectedDock.id}: weight=${validWeight}, led_state=${ledState}`
+      );
+
       await update(dockRef, {
         ...data,
+        weight: validWeight,
+        led_state: ledState,
         updated_at: serverTimestamp(),
       });
     } catch (error) {
@@ -78,6 +117,25 @@ export default function ConfigurePage() {
       await remove(dockRef);
     } catch (error) {
       console.error("Error deleting dock:", error);
+    }
+  };
+
+  const handleRemoveAllDocks = async () => {
+    if (
+      window.confirm(
+        "Are you sure you want to remove ALL docks? This action cannot be undone."
+      )
+    ) {
+      setIsRemoving(true);
+      try {
+        const docksRef = ref(db, "docks");
+        await remove(docksRef);
+        console.log("All docks have been removed successfully");
+      } catch (error) {
+        console.error("Error removing all docks:", error);
+      } finally {
+        setIsRemoving(false);
+      }
     }
   };
 
@@ -104,10 +162,20 @@ export default function ConfigurePage() {
       <Shell title="Configure Docks">
         <div className="rounded-lg border bg-card">
           <div className="p-4 flex justify-between items-center">
-            <Button onClick={() => setIsFormOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Dock
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={() => setIsFormOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Dock
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleRemoveAllDocks}
+                disabled={isRemoving || docks.length === 0}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isRemoving ? "Removing..." : "Remove All Docks"}
+              </Button>
+            </div>
           </div>
           <div className="border-t">
             <DockTable
