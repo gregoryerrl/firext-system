@@ -8,12 +8,27 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import Link from "next/link";
+import {useRouter} from "next/navigation";
 import {Button} from "@/components/ui/button";
-import {CheckIcon, AlertTriangle} from "lucide-react";
+import {CheckIcon, AlertTriangle, History} from "lucide-react";
 import {cn} from "@/lib/utils";
 
+const formatSimpleDate = (timestamp) => {
+  if (!timestamp) return "Never";
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(new Date(timestamp));
+  } catch (e) {
+    return "Invalid Date";
+  }
+};
+
 export function DockCard({dock}) {
+  const router = useRouter();
+
   // Always parse weight to ensure it's a number
   const weight = parseFloat(dock.weight || 0);
 
@@ -45,6 +60,12 @@ export function DockCard({dock}) {
   const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry <= 30;
   const isExpired = daysUntilExpiry !== null && daysUntilExpiry <= 0;
 
+  const handleReweighClick = () => {
+    if (dock && dock.id) {
+      router.push(`/docks/${dock.id}`);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -63,7 +84,7 @@ export function DockCard({dock}) {
         </CardTitle>
         <CardDescription>{dock.location}</CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-2">
+      <CardContent className="grid gap-2 pb-4">
         <div className="flex items-center justify-between">
           <span className="text-sm font-medium">Weight</span>
           <span
@@ -115,10 +136,17 @@ export function DockCard({dock}) {
               : `${daysUntilExpiry} days`}
           </span>
         </div>
+
+        <div className="flex items-center justify-between text-xs text-muted-foreground pt-2 border-t mt-2">
+          <span className="flex items-center">
+            <History className="mr-1 h-3 w-3" /> Last Reviewed:
+          </span>
+          <span>{formatSimpleDate(dock.last_reweighed_at)}</span>
+        </div>
       </CardContent>
       <CardFooter>
-        <Button asChild className="w-full" variant="outline">
-          <Link href={`/configure?edit=${dock.id}`}>Edit</Link>
+        <Button onClick={handleReweighClick} className="w-full">
+          Reweigh Dock
         </Button>
       </CardFooter>
     </Card>
